@@ -7,18 +7,18 @@ import (
 )
 
 // album represents data about a record album
-type album struct {
-	ID     string  `json:"id"`
-	Title  string  `json:"title"`
-	Artist string  `json:"artist"`
-	Price  float64 `json:"price"`
+type Album struct {
+	id     string  `json:"id"`
+	title  string  `json:"title"`
+	artist string  `json:"artist"`
+	price  float64 `json:"price"`
 }
 
 // albums slice to seed record album data.
-var albums = []album{
-	{ID: "1", Title: "Blue Train", Artist: "John Coltrane", Price: 56.99},
-	{ID: "2", Title: "Jeru", Artist: "Gerry Mulligan", Price: 17.99},
-	{ID: "3", Title: "Sarah Vaughan and Clifford Brown", Artist: "Sarah Vaughan", Price: 39.99},
+var albums = []Album{
+	{id: "1", title: "Blue Train", artist: "John Coltrane", price: 56.99},
+	{id: "2", title: "Jeru", artist: "Gerry Mulligan", price: 17.99},
+	{id: "3", title: "Sarah Vaughan and Clifford Brown", artist: "Sarah Vaughan", price: 39.99},
 }
 
 // getAlbums responds with the list of all albums as JSON
@@ -28,7 +28,7 @@ func getAlbums(c *gin.Context) {
 
 // postAlbums adds an album from JSON received in the request body
 func postAlbums(c *gin.Context) {
-	var newAlbum album
+	var newAlbum Album
 
 	// Call BindJSON to bind the received JSON to newAlbum
 	if err := c.BindJSON(&newAlbum); err != nil {
@@ -48,7 +48,7 @@ func getAlbumByID(c *gin.Context) {
 	// Loop over the list of albums, looking for
 	// an album whose ID value matches the parameter
 	for _, a := range albums {
-		if a.ID == id {
+		if a.id == id {
 			c.IndentedJSON(http.StatusOK, a)
 			return
 		}
