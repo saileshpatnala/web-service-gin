@@ -1,6 +1,9 @@
 package main
 
 import (
+	"learn/web-service-gin/db"
+	"learn/web-service-gin/db/models"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -8,60 +11,100 @@ import (
 
 // album represents data about a record album
 type Album struct {
-	id     string  `json:"id"`
-	title  string  `json:"title"`
-	artist string  `json:"artist"`
-	price  float64 `json:"price"`
+	ID     string  `json:"id"`
+	Title  string  `json:"title"`
+	Artist string  `json:"artist"`
+	Price  float64 `json:"price"`
 }
 
 // albums slice to seed record album data.
 var albums = []Album{
-	{id: "1", title: "Blue Train", artist: "John Coltrane", price: 56.99},
-	{id: "2", title: "Jeru", artist: "Gerry Mulligan", price: 17.99},
-	{id: "3", title: "Sarah Vaughan and Clifford Brown", artist: "Sarah Vaughan", price: 39.99},
+	{ID: "1", Title: "Blue Train", Artist: "John Coltrane", Price: 56.99},
+	{ID: "2", Title: "Jeru", Artist: "Gerry Mulligan", Price: 17.99},
+	{ID: "3", Title: "Sarah Vaughan and Clifford Brown", Artist: "Sarah Vaughan", Price: 39.99},
 }
 
 // getAlbums responds with the list of all albums as JSON
-func getAlbums(c *gin.Context) {
-	c.IndentedJSON(http.StatusOK, albums)
+func getTransactions(c *gin.Context) {
+	db, err := db.GetDB()
+	if err != nil {
+		log.Println(err.Error())
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+	}
+
+	transactions, err := models.GetTransactions(db)
+	if err != nil {
+		log.Println(err.Error())
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+	}
+	c.IndentedJSON(http.StatusOK, transactions)
 }
 
 // postAlbums adds an album from JSON received in the request body
-func postAlbums(c *gin.Context) {
-	var newAlbum Album
+func postTransaction(c *gin.Context) {
+	var transactionCreate models.TransactionCreate
 
 	// Call BindJSON to bind the received JSON to newAlbum
-	if err := c.BindJSON(&newAlbum); err != nil {
-		return
+	if err := c.BindJSON(&transactionCreate); err != nil {
+		log.Println(err.Error())
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 	}
 
 	// Add the new album to the slice
-	albums = append(albums, newAlbum)
-	c.IndentedJSON(http.StatusCreated, newAlbum)
+	db, err := db.GetDB()
+	if err != nil {
+		log.Println(err.Error())
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+	}
+	newTransaction, err := models.CreateTransaction(db, transactionCreate)
+	if err != nil {
+		log.Println(err.Error())
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+	}
+	c.IndentedJSON(http.StatusCreated, newTransaction)
 }
 
 // getAlbumByID locates the album whose ID value matches the id
 // parameter sent by the client, then retuns that album as a response
-func getAlbumByID(c *gin.Context) {
-	id := c.Param("id")
+func getTransactionByID(c *gin.Context) {
+	txn_id := c.Param("id")
 
-	// Loop over the list of albums, looking for
-	// an album whose ID value matches the parameter
-	for _, a := range albums {
-		if a.id == id {
-			c.IndentedJSON(http.StatusOK, a)
-			return
-		}
+	db, err := db.GetDB()
+	if err != nil {
+		log.Println(err.Error())
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 	}
 
-	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "album not found"})
+	transaction, err := models.GetTransactionByID(db, txn_id)
+	if err != nil {
+		log.Printf("Transaction with ID: %s not found", txn_id)
+		c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Transaction not found"})
+	} else {
+		log.Printf("Found transaction with ID: %s", txn_id)
+		c.IndentedJSON(http.StatusOK, transaction)
+	}
+
+}
+
+// getDBConn checks the connection to the database
+func getDBConn(c *gin.Context) {
+	conn, err := db.GetDB()
+	if err != nil {
+		log.Println(err.Error())
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+	}
+	if conn != nil {
+		log.Println("DB Connection active ✅")
+		c.IndentedJSON(http.StatusOK, gin.H{"message": "DB Connection active ✅"})
+	}
 }
 
 func main() {
 	router := gin.Default()
-	router.GET("/albums", getAlbums)
-	router.GET("/albums/:id", getAlbumByID)
-	router.POST("/albums", postAlbums)
+	router.GET("/transactions", getTransactions)
+	router.GET("/transactions/:id", getTransactionByID)
+	router.POST("/transactions", postTransaction)
+	router.GET("/db_conn", getDBConn)
 
 	router.Run("localhost:8080")
 }
