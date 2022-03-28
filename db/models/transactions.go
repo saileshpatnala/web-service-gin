@@ -69,6 +69,16 @@ func CreateTransaction(db *gorm.DB, txn_create TransactionCreate) (*Transaction,
 	}
 }
 
-// func DeleteTransactionID(db *gorm.DB, txn_id string) {
+func DeleteTransactionID(db *gorm.DB, txn_id string) (*Transaction, error) {
+	log.Printf("Deleting transaction with ID: %s", txn_id)
 
-// }
+	var deletedTransaction Transaction
+	result := db.Where(map[string]interface{}{"id": txn_id}).Delete(&deletedTransaction)
+	if result.Error != nil {
+		log.Println(result.Error.Error())
+		return nil, result.Error
+	} else {
+		log.Printf("Found transaction with ID: %s", txn_id)
+		return &deletedTransaction, nil
+	}
+}
